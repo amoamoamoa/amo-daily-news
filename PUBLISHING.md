@@ -20,12 +20,12 @@
 
 ## 更新首页和归档
 
-1. 每次开始发布前读取远端 main 最新提交、根目录 `issues.json` 和本流程，不依赖上一次运行的本地目录。
+1. 每次开始发布前读取远端 main 最新提交、根目录 `issues.json`、`site/catalog.json` 和本流程，不依赖上一次运行的本地目录。
 2. 检查日期是否已发布。若三个文件内容和元数据完全相同，作为成功的重复运行返回现有 URL，不重复提交。若同日内容有变化，先核验是否为同一期修复；不覆盖其他日期或删除历史文件。
 3. 将通过 QA 的当期三个文件放入对应日期目录。
-4. 用 `tools/prepare_publication.py --date YYYY-MM-DD --title '本期标题' --cutoff 'YYYY-MM-DDTHH:MM:SS+08:00'` 更新首页、归档及清单。运行脚本前须有最新远端 `issues.json` 和其中所有已发布期刊文件。它只负责索引完整性，不能代替事实或视觉 QA。
-5. 在已有清单基础上只追加当期。首页显示最大日期；补传旧期不得使首页倒退。没有对应文件的日期不得写入归档。
-6. 在一个提交中发布当期三个文件、`index.html`、`archive.html`、`issues.json`。不提交聊天、反馈、密钥、个人/公司资料、临时 QA 图片或本地说明。
+4. 用 `tools/prepare_publication.py --date YYYY-MM-DD --title '本期标题' --cutoff 'YYYY-MM-DDTHH:MM:SS+08:00'` 更新已核验的 `issues.json` 和 `site/catalog.json`，不得重建或覆盖已批准的 UI `index.html` 与 `archive.html`。运行前须有最新远端清单和其中所有已发布期刊文件。此脚本只负责索引完整性，不能代替事实或视觉 QA。
+5. 在已有清单基础上只追加当期。网站首页从 `site/catalog.json` 显示最大已发布 HTML 日期；补传旧期不得使首页倒退。没有对应 HTML 的日期不得写入目录；缺 PDF 的旧期可以标记为 HTML-only，但不得写入 COMPLETE `issues.json`。
+6. 在一个提交中发布当期三个文件、`issues.json`、`site/catalog.json`。只有另行批准 UI 变化时才提交首页或归档 HTML；每天的新闻发布不得重建已批准 UI。不提交聊天、反馈、密钥、个人/公司资料、临时 QA 图片或本地说明。
 
 ## GitHub 上传
 
@@ -46,3 +46,7 @@
 ## 定时任务接入状态
 
 此文档和脚本只是可复用的发布流程。它们不创建、不启用任何定时任务；原 Daily News 任务需在原任务中追加这一步，保持原名称、每天北京时间 10:00、时区、项目、通知和编辑要求。
+
+## 已批准 UI v1.0 说明（2026-10-17）
+
+首页、今日新闻、历史归档及 Amo 留言板使用新的静态 UI。`index.html`、`archive.html` 和 `assets/app.js` 是已批准的显示基线；`site/catalog.json` 为独立的公开新闻目录。`issues.json` 继续仅记录通过 HTML＋完整 PDF＋播客版 PDF 三文件 QA 的 COMPLETE 期刊。`issues/2026-10-16/index.html` 只有 HTML，因此可在网页阅读，不得伪装为三文件完整发布。私人留言只存于各浏览器 localStorage，切勿上传私人留言到公开 GitHub 仓库。所有既有排程、截稿、内容及隐私规范不变。
