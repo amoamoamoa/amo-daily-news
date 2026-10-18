@@ -66,6 +66,16 @@ def read_metadata(folder, title):
         if story['cat'] not in STORY_CATEGORIES or story['art'] not in ARTS:
             raise ValueError(f'Unsupported story category/art: {path}')
         seen.add(sid)
+    day = dt.date.fromisoformat(folder.name)
+    if day >= WEEKEND_V21_FROM and day.weekday() == 5:
+        # Saturday: two independent full-length features, alongside screened headlines.
+        if sum(story['cat'] == '专题' for story in data['stories']) != 2:
+            raise ValueError('Saturday Weekend Special requires exactly two features')
+    if day >= WEEKEND_V21_FROM and day.weekday() == 6:
+        # Sunday: one long-form feature and one complete English reading class.
+        # Content/English-language and copyright QA are editorial, not inferred here.
+        if len(data['stories']) != 2 or any(story['cat'] != '专题' for story in data['stories']):
+            raise ValueError('Sunday Weekend Special requires two complete feature entries')
     return data
 
 
