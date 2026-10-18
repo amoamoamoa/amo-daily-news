@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Validate a complete Daily News edition, then update manifests WITHOUT rewriting approved UI.
 
-This preserves the existing 3-file publication gate. New HTML-only editions may be
-listed in the UI catalog with an explicit incomplete-PDF status, but MUST NOT enter
-issues.json (the complete publication manifest) until all 3 files pass QA.
+This preserves the existing 3-file publication gate. Historical HTML-only editions
+retain their catalog entries; new dates require a complete edition and independently
+verified story metadata before either manifest is updated.
 """
 import argparse
 import datetime as dt
@@ -13,6 +13,45 @@ from pathlib import Path
 
 FEATURES = ['体育与周末回顾', '科技专题', '家庭与成长', '文化生活与周末指南', '财经与产业观察', '文化与趣味发现', 'Weekend Special｜深度专题、东西方哲学、英文精读']
 CATEGORIES = ['社会', '科技', '社会', '文化', '财经', '文化', '专题']
+STORY_CATEGORIES = {'国际', '国内', '长三角', '科技', '财经', '专题'}
+ARTS = {'world', 'city', 'ai', 'finance', 'science', 'book'}
+
+
+def read_metadata(folder, title):
+    """Read editorially verified data, never infer news from HTML or filenames."""
+    path = folder / 'stories.json'
+    if not path.exists() and not path.is_symlink():
+        return None  # Legacy editions retain their existing catalog metadata.
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f'Invalid story metadata file: {path}')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    fields = {'schema', 'date', 'title', 'category', 'summary', 'stories'}
+    if not isinstance(data, dict) or set(data) != fields:
+        raise ValueError(f'Unexpected/missing story metadata fields: {path}')
+    if type(data['schema']) is not int or data['schema'] != 1:
+        raise ValueError(f'Unsupported story metadata schema: {path}')
+    if data['date'] != folder.name or data['title'] != title:
+        raise ValueError(f'Story metadata date/title mismatch: {path}')
+    for key in ('title', 'category', 'summary'):
+        if not isinstance(data[key], str) or not data[key].strip():
+            raise ValueError(f'Empty/invalid metadata {key}: {path}')
+    if data['category'] not in set(CATEGORIES):
+        raise ValueError(f'Unsupported archive category: {path}')
+    if not isinstance(data['stories'], list) or not data['stories']:
+        raise ValueError(f'Nonempty verified stories required: {path}')
+    seen = set()
+    for story in data['stories']:
+        if not isinstance(story, dict) or set(story) != {'id', 'cat', 'title', 'art'}:
+            raise ValueError(f'Unexpected/missing story fields: {path}')
+        if not all(isinstance(story[k], str) and story[k].strip() for k in story):
+            raise ValueError(f'Empty/invalid story field: {path}')
+        sid = story['id']
+        if not re.fullmatch(re.escape(folder.name) + r'-[A-Za-z0-9_-]+', sid) or sid in seen:
+            raise ValueError(f'Invalid/duplicate story id: {path}')
+        if story['cat'] not in STORY_CATEGORIES or story['art'] not in ARTS:
+            raise ValueError(f'Unsupported story category/art: {path}')
+        seen.add(sid)
+    return data
 
 
 def valid_pdf(path):
@@ -54,7 +93,11 @@ def build_catalog(root, completed):
     existing={}
     if catalog_path.exists():
         before=json.loads(catalog_path.read_text(encoding='utf-8'))
-        existing={x['date']:x for x in before.get('issues',[]) if re.fullmatch(r'\d{4}-\d{2}-\d{2}',x.get('date',''))}
+        for entry in before['issues']:
+            date = entry['date']
+            if date != dt.date.fromisoformat(date).isoformat() or date in existing:
+                raise ValueError('Invalid/duplicate existing catalog date')
+            existing[date] = entry
     entries=[]
     issue_dir=root/'issues'
     for folder in sorted(issue_dir.iterdir(),reverse=True) if issue_dir.exists() else []:
@@ -68,18 +111,31 @@ def build_catalog(root, completed):
             continue
         date=folder.name;day=dt.date.fromisoformat(date)
         approved=completed.get(date,{});old=existing.get(date,{})
+        if date not in existing and date not in completed:
+            raise ValueError(f'New issue must pass the complete publication gate: {date}')
         category=old.get('category') or CATEGORIES[day.weekday()]
         feature=approved.get('feature') or old.get('feature') or FEATURES[day.weekday()]
         title=approved.get('title') or old.get('title') or f'{date} · {feature}'
+        metadata=read_metadata(folder,title)
+        if metadata is None and date not in existing:
+            raise ValueError(f'New issue requires verified metadata: {folder}/stories.json')
+        if metadata and old.get('stories') and any(
+            metadata[key] != old.get(key) for key in ('title','category','summary','stories')
+        ):
+            raise ValueError(f'Published story metadata differs; review before changing: {date}')
+        public=metadata or old
         entry={
-            'date':date,'title':title,'feature':feature,'category':category,
-            'summary':old.get('summary') or '已发布期刊：完整正文、来源与解读请查看原刊。',
+            'date':date,'title':title,'feature':feature,'category':public.get('category') or category,
+            'summary':public.get('summary') or '已发布期刊：完整正文、来源与解读请查看原刊。',
             'html':f'issues/{date}/index.html',
             'pdf_full':f'issues/{date}/完整版.pdf' if valid_pdf(folder/'完整版.pdf') else None,
             'pdf_podcast':f'issues/{date}/播客版.pdf' if valid_pdf(folder/'播客版.pdf') else None,
-            'stories':old.get('stories',[]),
+            'stories':public.get('stories',[]),
         }
         entries.append(entry)
+    missing=(set(existing) | set(completed)) - {x['date'] for x in entries}
+    if missing:
+        raise ValueError(f'Historical issue HTML missing/invalid; refusing to drop: {sorted(missing)}')
     return {'schema':1,'note':'由原发布流程核验文件后更新；没有生成占位期刊或虚假 PDF 链接。','issues':entries}
 
 

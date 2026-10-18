@@ -22,10 +22,47 @@
 
 1. 每次开始发布前读取远端 main 最新提交、根目录 `issues.json`、`site/catalog.json` 和本流程，不依赖上一次运行的本地目录。
 2. 检查日期是否已发布。若三个文件内容和元数据完全相同，作为成功的重复运行返回现有 URL，不重复提交。若同日内容有变化，先核验是否为同一期修复；不覆盖其他日期或删除历史文件。
-3. 将通过 QA 的当期三个文件放入对应日期目录。
+3. 将通过 QA 的当期三个文件放入对应日期目录。同时从本期已核验的编辑母稿导出独立的 `issues/YYYY-MM-DD/stories.json`（格式见下文），与三份正式文件一同核对；不得从新闻 HTML 猜测、补造或改写标题和事实。
 4. 用 `tools/prepare_publication.py --date YYYY-MM-DD --title '本期标题' --cutoff 'YYYY-MM-DDTHH:MM:SS+08:00'` 更新已核验的 `issues.json` 和 `site/catalog.json`，不得重建或覆盖已批准的 UI `index.html` 与 `archive.html`。运行前须有最新远端清单和其中所有已发布期刊文件。此脚本只负责索引完整性，不能代替事实或视觉 QA。
 5. 在已有清单基础上只追加当期。网站首页从 `site/catalog.json` 显示最大已发布 HTML 日期；补传旧期不得使首页倒退。没有对应 HTML 的日期不得写入目录；缺 PDF 的旧期可以标记为 HTML-only，但不得写入 COMPLETE `issues.json`。
-6. 在一个提交中发布当期三个文件、`issues.json`、`site/catalog.json`。只有另行批准 UI 变化时才提交首页或归档 HTML；每天的新闻发布不得重建已批准 UI。不提交聊天、反馈、密钥、个人/公司资料、临时 QA 图片或本地说明。
+6. 在一个提交中发布当期三个文件、当期 `stories.json`、`issues.json`、`site/catalog.json`。只有另行批准 UI 变化时才提交首页或归档 HTML；每天的新闻发布不得重建已批准 UI。不提交聊天、反馈、密钥、个人/公司资料、临时 QA 图片或本地说明。
+
+### 独立文章元数据同步
+
+`stories.json` 是公开目录数据，不是第四份正式期刊，不包含正文或私人留言。由制作当期内容的同一编辑流程从已经 Knowledge QA 的母稿导出，逐项核对后存入日期目录；发布脚本自动读取，不需要预填 `site/catalog.json`。脚本只验证结构和一致性，不能证明新闻事实准确或代替人工/内容 QA。
+
+| 字段 | 要求 |
+| --- | --- |
+| `schema` | 整数 `1` |
+| `date` / `title` | 与目录日期、发布命令的 `--title` 完全一致 |
+| `category` | 归档分类：社会、科技、文化、财经、专题之一 |
+| `summary` | 已核验的当期公开摘要，非空字符串 |
+| `stories` | 非空文章数组，按原刊阅读顺序，每篇仅含下列四个字段 |
+| `stories[].id` | `YYYY-MM-DD-稳定后缀`；后缀仅英文、数字、`_`、`-`，期内唯一，发布后保持稳定以保留私人留言关联 |
+| `stories[].cat` | 国际、国内、长三角、科技、财经、专题之一，与批准 UI 的分类匹配 |
+| `stories[].title` | 原刊已核验标题，非空，不由脚本推断 |
+| `stories[].art` | `world`、`city`、`ai`、`finance`、`science`、`book` 之一，仅控制批准 UI 的封面样式 |
+
+周日 `feature` 仍由日期自动确定为 Weekend Special；`stories` 应包含当期三个部分的已核验真实标题，通常使用 `cat: 专题`，不为凑每日五类新闻而生成内容。以下仅为结构说明，占位文本不得发布：
+
+```json
+{
+  "schema": 1,
+  "date": "YYYY-MM-DD",
+  "title": "与 --title 完全一致的本期标题",
+  "category": "专题",
+  "summary": "来自本期已核验母稿的公开摘要",
+  "stories": [
+    {"id": "YYYY-MM-DD-part-01", "cat": "专题", "title": "本期真实标题", "art": "book"}
+  ]
+}
+```
+
+数据关系为：已核验母稿 → 三份正式期刊及独立 `stories.json` → `prepare_publication.py` → `issues.json`（COMPLETE）及 `site/catalog.json`（阅读目录）→ 批准的 `assets/app.js` → 首页精选、今日新闻、归档与留言关联选项。卡片继续链接完整原刊，不新增文章正文或深链接。
+
+新日期缺失、空白、字段不合法、日期/标题不匹配的元数据会阻止清单写入。已有目录中的旧期可继续继承原元数据，无需补造历史 sidecar；旧期 HTML 未取全或损坏时会报错，防止清单丢失。已发布且非空的文章目录与 sidecar 不一致时先报错，须核实为同一期获准修订后再同步两份数据；不得静默重编号。两份 PDF 仍须齐全且有效才允许加入 COMPLETE；此脚本的文件结构校验不替代 PDF 渲染 QA。
+
+独立回归测试：`python3 -m unittest discover -s tests -v`。测试在临时目录使用明确标注的合成期刊，不上传测试期刊。发布前重新读取 main，保留其他工作对 PDF 的修复；只提交本期文件及对应索引，禁止强推。
 
 ## GitHub 上传
 
