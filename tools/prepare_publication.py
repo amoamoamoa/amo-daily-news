@@ -70,8 +70,13 @@ def validate(root, item):
     if not item['title'].strip() or item['feature'] != FEATURES[day.weekday()]:
         raise ValueError('Title/weekday feature is invalid')
     cutoff=dt.datetime.fromisoformat(item['cutoff'])
-    if cutoff.utcoffset()!=dt.timedelta(hours=8) or cutoff.date()!=day:
-        raise ValueError('Cutoff must be the issue date with +08:00 offset')
+    if cutoff.utcoffset()!=dt.timedelta(hours=8):
+        raise ValueError('Cutoff must use the +08:00 offset')
+    if cutoff.date()!=day:
+        if not item.get('backfill') or cutoff.date()<day:
+            raise ValueError('Later cutoff requires explicit retrospective backfill')
+    if cutoff > dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):
+        raise ValueError('Cannot claim a future verification cutoff')
     folder=root/'issues'/item['date']
     if not folder.is_dir() or folder.is_symlink():
         raise ValueError(f'Missing issue folder: {folder}')
@@ -169,9 +174,12 @@ def main():
     parser.add_argument('--date',required=True)
     parser.add_argument('--title',required=True)
     parser.add_argument('--cutoff',required=True)
+    parser.add_argument('--backfill',action='store_true',help='Explicit retrospective issue: allow verification after issue date')
     args=parser.parse_args()
     date=dt.date.fromisoformat(args.date)
     item={'date':args.date,'title':args.title,'feature':FEATURES[date.weekday()],'cutoff':args.cutoff}
+    if args.backfill:
+        item['backfill']=True
     manifest=args.root/'issues.json'
     items=json.loads(manifest.read_text(encoding='utf-8'))['issues']
     prev=next((x for x in items if x['date']==args.date),None)
