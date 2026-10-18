@@ -2,6 +2,19 @@
   "version": 1,
   "issues": [
     {
+      "date": "2026-10-18",
+      "title": "Daily News｜10月18日·Weekend Special",
+      "feature": "Weekend Special｜深度专题、东西方哲学、英文精读",
+      "cutoff": "2026-10-18T14:21:11+08:00"
+    },
+    {
+      "date": "2026-10-17",
+      "title": "Daily News｜10月17日·文化与趣味发现",
+      "feature": "文化与趣味发现",
+      "cutoff": "2026-10-18T14:21:11+08:00",
+      "backfill": true
+    },
+    {
       "date": "2026-10-14",
       "title": "每日新闻｜家庭与成长专题",
       "feature": "家庭与成长",
