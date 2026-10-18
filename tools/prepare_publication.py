@@ -16,6 +16,21 @@ CATEGORIES = ['社会', '科技', '社会', '文化', '财经', '文化', '专�
 STORY_CATEGORIES = {'国际', '国内', '长三角', '科技', '财经', '专题'}
 ARTS = {'world', 'city', 'ai', 'finance', 'science', 'book'}
 
+# Weekend v2.1 begins with the NEXT weekend; preserve prior approved issues.
+# FEATURES and old manifests remain the historical baseline through 2026-10-18.
+WEEKEND_V21_FROM = dt.date(2026, 10, 24)
+WEEKEND_V21 = {
+    5: 'Weekend Special｜两篇独立深度专题',
+    6: 'Weekend Special｜深度专题＋英文精读',
+}
+
+def feature_for(day):
+    """Prospective labels only; existing editions retain their recorded feature."""
+    if day >= WEEKEND_V21_FROM and day.weekday() in WEEKEND_V21:
+        return WEEKEND_V21[day.weekday()]
+    return FEATURES[day.weekday()]
+
+
 
 def read_metadata(folder, title):
     """Read editorially verified data, never infer news from HTML or filenames."""
@@ -51,6 +66,16 @@ def read_metadata(folder, title):
         if story['cat'] not in STORY_CATEGORIES or story['art'] not in ARTS:
             raise ValueError(f'Unsupported story category/art: {path}')
         seen.add(sid)
+    day = dt.date.fromisoformat(folder.name)
+    if day >= WEEKEND_V21_FROM and day.weekday() == 5:
+        # Saturday: two independent full-length features, alongside screened headlines.
+        if sum(story['cat'] == '专题' for story in data['stories']) != 2:
+            raise ValueError('Saturday Weekend Special requires exactly two features')
+    if day >= WEEKEND_V21_FROM and day.weekday() == 6:
+        # Sunday: one long-form feature and one complete English reading class.
+        # Content/English-language and copyright QA are editorial, not inferred here.
+        if len(data['stories']) != 2 or any(story['cat'] != '专题' for story in data['stories']):
+            raise ValueError('Sunday Weekend Special requires two complete feature entries')
     return data
 
 
@@ -67,7 +92,7 @@ def validate(root, item):
         raise ValueError('Date must be YYYY-MM-DD')
     if day > dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).date():
         raise ValueError('Cannot publish a future issue')
-    if not item['title'].strip() or item['feature'] != FEATURES[day.weekday()]:
+    if not item['title'].strip() or item['feature'] != feature_for(day):
         raise ValueError('Title/weekday feature is invalid')
     cutoff=dt.datetime.fromisoformat(item['cutoff'])
     if cutoff.utcoffset()!=dt.timedelta(hours=8):
@@ -119,7 +144,7 @@ def build_catalog(root, completed):
         if date not in existing and date not in completed:
             raise ValueError(f'New issue must pass the complete publication gate: {date}')
         category=old.get('category') or CATEGORIES[day.weekday()]
-        feature=approved.get('feature') or old.get('feature') or FEATURES[day.weekday()]
+        feature=approved.get('feature') or old.get('feature') or feature_for(day)
         title=approved.get('title') or old.get('title') or f'{date} · {feature}'
         metadata=read_metadata(folder,title)
         if metadata is None and date not in existing:
@@ -177,7 +202,7 @@ def main():
     parser.add_argument('--backfill',action='store_true',help='Explicit retrospective issue: allow verification after issue date')
     args=parser.parse_args()
     date=dt.date.fromisoformat(args.date)
-    item={'date':args.date,'title':args.title,'feature':FEATURES[date.weekday()],'cutoff':args.cutoff}
+    item={'date':args.date,'title':args.title,'feature':feature_for(date),'cutoff':args.cutoff}
     if args.backfill:
         item['backfill']=True
     manifest=args.root/'issues.json'
