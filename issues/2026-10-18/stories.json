@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "date": "2026-10-18",
+  "title": "Daily News｜10月18日·Weekend Special",
+  "category": "专题",
+  "summary": "周日完整学习特刊：AI信息证据链、孔子与苏格拉底对未知的认识、原创英语阅读《What Makes a Claim Trustworthy?》；附练习、边界与可追溯出处。",
+  "stories": [
+    {
+      "id": "2026-10-18-part-01",
+      "cat": "专题",
+      "title": "Part 01｜Deep Understanding：怎样建立一条可信的 AI 信息证据链？",
+      "art": "science"
+    },
+    {
+      "id": "2026-10-18-part-02",
+      "cat": "专题",
+      "title": "Part 02｜东西方哲学：承认不知道，是谦虚还是一种能力？",
+      "art": "book"
+    },
+    {
+      "id": "2026-10-18-part-03",
+      "cat": "专题",
+      "title": "Part 03｜English Reading Lab：What Makes a Claim Trustworthy?",
+      "art": "book"
+    }
+  ]
+}
