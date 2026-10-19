@@ -1,7 +1,55 @@
 {
   "schema": 1,
-  "note": "仅列已核实的 GitHub 仓库期刊文件。缺失 PDF 不生成链接。目录更新由 tools/prepare_publication.py 维护。",
+  "note": "由原发布流程核验文件后更新；没有生成占位期刊或虚假 PDF 链接。",
   "issues": [
+    {
+      "date": "2026-10-19",
+      "title": "Daily News｜2026-10-19｜五类要闻与体育回顾",
+      "feature": "体育与周末回顾",
+      "category": "社会",
+      "summary": "科技兴商新政、前三季度经济数据、上海航运周日程、开源推理更新，以及上海大师赛周末赛果。",
+      "html": "issues/2026-10-19/index.html",
+      "pdf_full": "issues/2026-10-19/完整版.pdf",
+      "pdf_podcast": "issues/2026-10-19/播客版.pdf",
+      "stories": [
+        {
+          "id": "2026-10-19-russia-waiver",
+          "cat": "国际",
+          "title": "美国豁免新法部分对俄制裁：旧有限制并未一并解除",
+          "art": "world"
+        },
+        {
+          "id": "2026-10-19-commerce-tech",
+          "cat": "国内",
+          "title": "九部门公开科技兴商意见：从智能商品走向商业服务",
+          "art": "city"
+        },
+        {
+          "id": "2026-10-19-shipping-week",
+          "cat": "长三角",
+          "title": "上海浦东国际航运周进入日程：关注绿色与数智航运",
+          "art": "city"
+        },
+        {
+          "id": "2026-10-19-vllm-release",
+          "cat": "科技",
+          "title": "vLLM 0.32.0发布：推理升级也要检查兼容与安全",
+          "art": "ai"
+        },
+        {
+          "id": "2026-10-19-economy-q3",
+          "cat": "财经",
+          "title": "前三季度GDP同比增长4.6%：总量与需求指标要一起读",
+          "art": "finance"
+        },
+        {
+          "id": "2026-10-19-sports-weekend",
+          "cat": "专题",
+          "title": "周一体育回顾｜上海大师赛逆转夺冠，比分之外看什么？",
+          "art": "science"
+        }
+      ]
+    },
     {
       "date": "2026-10-18",
       "title": "Daily News｜10月18日·Weekend Special",
